@@ -92,12 +92,12 @@ namespace MuAuthApp.Controllers
         private string GenerateJwtToken(IdentityUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var claims = new []
+            List<Claim> claims  = new List<Claim>
             {
                 // Sub is the subject of the token (the username of the authenticated user)
                 // Jti is a unique identifier for the token aka GUID
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), 
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
             
             // we use the secret key from appsettins to sing the jwt
