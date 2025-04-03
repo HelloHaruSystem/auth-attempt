@@ -9,19 +9,23 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+//------------------------------------------------------------Swagger------------------------------------------------------------\\
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+//-----------------------------------------------------------Database-------------------------------------------------------------\\
 // 1: add db context
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+//-------------------------------------------------------Identity service---------------------------------------------------------\\
 // 2: configure Identity service used for auth
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
+//--------------------------------------------------------Authentication----------------------------------------------------------\\
 // 3: Read JSON WEB Token(JWT) settings from appsettings.json
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 
@@ -54,8 +58,16 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+// add auth services
+builder.Services.AddAuthorization();
+
+//--------------------------------------------------------add Controllers-------------------------------------------------------\\
+// builder.Services.AddControllers();
+
+//-------------------------------------------------------------Build-------------------------------------------------------------\\
 var app = builder.Build();
 
+//--------------------------------------------------------If Development----------------------------------------------------------\\
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -63,7 +75,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-
+//--------------------------------------------------------Sample mapping----------------------------------------------------------\\
 app.MapGet("/", () => "Hello World");
 
+//--------------------------------------------------------map controllers----------------------------------------------------------\\
+// app.MapControllers();
+
+//------------------------------------------------------------Run App--------------------------------------------------------------\\
 app.Run();
