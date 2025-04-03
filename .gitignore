@@ -31,3 +31,6 @@ Dockerfile.postgresql
 
 # db-setup file
 db-setup.sql
+
+# database Migrations
+Migrations/
