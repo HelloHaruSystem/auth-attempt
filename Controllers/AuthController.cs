@@ -48,6 +48,47 @@ namespace MuAuthApp.Controllers
             return Ok(new { Username = username });
         }
 
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                // check if both username and email already exists
+                var existingUser = await _userManager.FindByNameAsync(model.UserName);
+                if (existingUser != null)
+                {
+                    return BadRequest("Username already exists.");
+                }
+
+                var existingEmail = await _userManager.FindByEmailAsync(model.Email);
+                if (existingEmail != null)
+                {
+                    return BadRequest("Email already exists.");
+                }
+
+                // else crete new identify user
+                var user = new IdentityUser
+                {
+                    UserName = model.UserName,
+                    Email = model.Email
+                };
+                
+                // then create a user with the provided password
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                // if successful generate a JWT token 
+                if (result.Succeeded)
+                {
+                    var token = GenerateJwtToken(user);
+                    return Ok(new { Token = token });
+                }
+
+                return BadRequest(result.Errors);
+            }
+
+            return BadRequest("Invalid data.");
+        }
+
         private string GenerateJwtToken(IdentityUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
