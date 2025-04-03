@@ -62,7 +62,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 //--------------------------------------------------------add Controllers-------------------------------------------------------\\
-// builder.Services.AddControllers();
+builder.Services.AddControllers();
 
 //-------------------------------------------------------------Build-------------------------------------------------------------\\
 var app = builder.Build();
@@ -83,7 +83,7 @@ if (app.Environment.IsDevelopment())
 app.MapGet("/", () => "Hello World");
 
 //--------------------------------------------------------map controllers----------------------------------------------------------\\
-// app.MapControllers();
+app.MapControllers();
 
 //------------------------------------------------------------Run App--------------------------------------------------------------\\
 app.Run();
