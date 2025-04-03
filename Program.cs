@@ -67,6 +67,10 @@ builder.Services.AddAuthorization();
 //-------------------------------------------------------------Build-------------------------------------------------------------\\
 var app = builder.Build();
 
+//-----------------------------------------------------HTTP Request pipeline------------------------------------------------------\\
+app.UseAuthentication();
+app.UseAuthorization();
+
 //--------------------------------------------------------If Development----------------------------------------------------------\\
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

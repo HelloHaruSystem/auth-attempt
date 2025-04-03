@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using MuAuthApp.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -36,6 +38,16 @@ namespace MuAuthApp.Controllers
             return Unauthorized();
         }
 
+        // [Authorize] makes it so only authenticated users can access this end points
+        [HttpGet("profile")]
+        [Authorize] 
+        public IActionResult GetProfile()
+        {
+            // this comes from the jwt token
+            var username = User.Identity.Name;
+            return Ok(new { Username = username });
+        }
+
         private string GenerateJwtToken(IdentityUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
@@ -43,7 +55,7 @@ namespace MuAuthApp.Controllers
             {
                 // Sub is the subject of the token (the username of the authenticated user)
                 // Jti is a unique identifier for the token aka GUID
-                new Claim(JwtRegisteredClaimNames.Sub, user.userName),
+                new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), 
             };
             
