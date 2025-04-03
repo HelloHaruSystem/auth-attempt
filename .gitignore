@@ -1,0 +1,33 @@
+# app settings, properties and environment variables
+appsettings.Development.json
+appsettings.json
+Properties/launchSettings.json
+secrets.json
+.env
+
+# binaries
+bin/
+obj/
+out/
+publish/
+
+# user options
+*.suo
+*.user
+*.sln
+
+# ide files
+*.vs/
+
+# NuGet packages
+packages/
+*.nupkg
+project.lock.json
+project.assets.json
+
+# docker files
+docker-compose.yml
+Dockerfile.postgresql
+
+# db-setup file
+db-setup.sql
