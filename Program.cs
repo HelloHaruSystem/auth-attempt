@@ -77,9 +77,12 @@ builder.Services.AddAuthentication(options =>
 })
     .AddJwtBearer(options => 
     {
+        options.IncludeErrorDetails = true;
         // Token validation parameters
         options.TokenValidationParameters = new TokenValidationParameters
         {   
+            
+
             // secret key specified in appsettings.json
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"])),
@@ -112,14 +115,25 @@ builder.Services.AddAuthentication(options =>
                 Console.WriteLine("Token validated successfully");
                 return Task.CompletedTask;
             },
-                OnMessageReceived = context =>
+            OnMessageReceived = context =>
             {
                 Console.WriteLine("JWT Token received: " + context.Token);
                 return Task.CompletedTask;
             },
-                OnChallenge = context =>
+            OnChallenge = context =>
             {
                 Console.WriteLine("OnChallenge: Authorization failed");
+
+                if (context.Request.Headers.ContainsKey("Authorization"))
+                {
+                    var token = context.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                    Console.WriteLine("Token in OnChallenge: " + token);
+                }
+                else
+                {
+                    Console.WriteLine("No token provided in Authorization header.");
+                }
+
                 return Task.CompletedTask;
             }
         };
