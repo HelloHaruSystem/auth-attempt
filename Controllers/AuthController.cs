@@ -32,10 +32,26 @@ namespace MuAuthApp.Controllers
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
                 var token = GenerateJwtToken(user);
+                System.Console.WriteLine($"Generated token : {token}");
                 return Ok(new { Token = token });
             }
 
             return Unauthorized();
+        }
+
+        [HttpGet("debug-auth")]
+        public IActionResult DebugAuth()
+        {
+            var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
+
+            return Ok(new
+            {
+                HasAuthHeader = !string.IsNullOrEmpty(authHeader),
+                AuthHeaderValue = authHeader,
+                AuthScheme = authHeader?.Split(' ')?.FirstOrDefault(),
+                TokenPresent = authHeader?.Contains("Bearer") == true,
+                TokenValue = authHeader?.Replace("Bearer ", "")
+            });
         }
 
         // [Authorize] makes it so only authenticated users can access this end points
@@ -43,8 +59,13 @@ namespace MuAuthApp.Controllers
         [Authorize] 
         public IActionResult GetProfile()
         {
-            // this comes from the jwt token
+            // Debug the authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            Console.WriteLine($"Auth Header: {authHeader}");
+
             var username = User.Identity.Name;
+            Console.WriteLine($"Username from token: {username}");
+
             return Ok(new { Username = username });
         }
 
@@ -92,16 +113,19 @@ namespace MuAuthApp.Controllers
         private string GenerateJwtToken(IdentityUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            List<Claim> claims  = new List<Claim>
-            {
+            List<Claim> claims  =
+            [
                 // Sub is the subject of the token (the username of the authenticated user)
                 // Jti is a unique identifier for the token aka GUID
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            };
+                new Claim(ClaimTypes.Name, user.UserName)
+            ];
             
             // we use the secret key from appsettins to sing the jwt
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]));
+            Console.WriteLine(jwtSettings["Secret"]);
+            Console.WriteLine(key.ToString());
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
