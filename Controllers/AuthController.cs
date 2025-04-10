@@ -33,10 +33,29 @@ namespace MuAuthApp.Controllers
             {
                 var token = GenerateJwtToken(user);
                 System.Console.WriteLine($"Generated token : {token}");
-                return Ok(new { Token = token });
+                
+                // uncomment to sent the jwt token as a json response instead of a cookie
+                // return Ok(new { Token = token });
+
+                // send jwt as a cookie instead of a json response comment out if you prefer json
+                Response.Cookies.Append("jwt", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddMinutes(60)
+                });
+
+                return Ok();
             }
 
             return Unauthorized();
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            Response.Cookies.Delete("jwt");
+            return Ok();
         }
 
         [HttpGet("debug-auth")]

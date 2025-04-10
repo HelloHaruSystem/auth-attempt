@@ -77,6 +77,19 @@ builder.Services.AddAuthentication(options =>
 })
     .AddJwtBearer(options => 
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Cookies["jwt"];
+                if(!string.IsNullOrEmpty(token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            }
+        };
+
         options.IncludeErrorDetails = true;
         // Token validation parameters
         options.TokenValidationParameters = new TokenValidationParameters
@@ -99,44 +112,6 @@ builder.Services.AddAuthentication(options =>
             RequireExpirationTime = true,
             ValidateLifetime = true,
         };
-
-        // Console.WriteLine() calls to try and find a issue for token validation
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                // log error
-                Console.WriteLine("Authentication failed: " + context.Exception.Message);
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                // Log success
-                Console.WriteLine("Token validated successfully");
-                return Task.CompletedTask;
-            },
-            OnMessageReceived = context =>
-            {
-                Console.WriteLine("JWT Token received: " + context.Token);
-                return Task.CompletedTask;
-            },
-            OnChallenge = context =>
-            {
-                Console.WriteLine("OnChallenge: Authorization failed");
-
-                if (context.Request.Headers.ContainsKey("Authorization"))
-                {
-                    var token = context.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-                    Console.WriteLine("Token in OnChallenge: " + token);
-                }
-                else
-                {
-                    Console.WriteLine("No token provided in Authorization header.");
-                }
-
-                return Task.CompletedTask;
-            }
-        };
     });
 
 // add auth services
@@ -153,25 +128,22 @@ builder.Services.AddCors(options =>
     policy =>
     {
         policy.WithOrigins("http://localhost:5500")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowCredentials()
+            .WithHeaders("Authorization", "Content-Type")
+            .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
     });
 });
 
 //-------------------------------------------------------------Build-------------------------------------------------------------\\
 var app = builder.Build();
 
+//------------------------------------------------------------Use Cors-------------------------------------------------------------\\
+app.UseCors("AllowFrontend");
+
 //-----------------------------------------------------HTTP Request pipeline------------------------------------------------------\\
 app.UseRouting(); 
 app.UseAuthentication();
 app.UseAuthorization();
-//--------------------------------------------------------If Development----------------------------------------------------------\\
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 //--------------------------------------------------------Sample mapping----------------------------------------------------------\\
 app.MapGet("/", () => "Hello World");
@@ -179,8 +151,13 @@ app.MapGet("/", () => "Hello World");
 //--------------------------------------------------------map controllers----------------------------------------------------------\\
 app.MapControllers();
 
-//------------------------------------------------------------Use Cors-------------------------------------------------------------\\
-app.UseCors("AllowFrontend");
+//--------------------------------------------------------If Development----------------------------------------------------------\\
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 //------------------------------------------------------------Run App--------------------------------------------------------------\\
 app.Run();
