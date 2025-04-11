@@ -160,4 +160,41 @@ if (app.Environment.IsDevelopment())
 }
 
 //------------------------------------------------------------Run App--------------------------------------------------------------\\
+
+// create a scope to run role seeding method
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+    if (!await roleManager.RoleExistsAsync("Admin"))
+    {
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
+    }
+
+    if (!await roleManager.RoleExistsAsync("User"))
+    {
+        await roleManager.CreateAsync(new IdentityRole("User"));
+    }
+
+    var adminUser = await userManager.FindByNameAsync("admin");
+    if (adminUser == null)
+    {
+        adminUser = new IdentityUser
+        {
+            UserName = "admin",
+            Email = "admin@example.com",
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(adminUser, "Admin@123");
+
+        if (result.Succeeded)
+        {
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+    }
+}
+
+
 app.Run();

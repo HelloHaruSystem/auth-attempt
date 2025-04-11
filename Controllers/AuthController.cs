@@ -15,11 +15,13 @@ namespace MuAuthApp.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
 
-        public AuthController(UserManager<IdentityUser> userManager, IConfiguration configuration)
+        public AuthController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManger, IConfiguration configuration)
         {
             _userManager = userManager;
+            _roleManager = roleManger;
             _configuration = configuration;
         }
 
@@ -31,8 +33,9 @@ namespace MuAuthApp.Controllers
             var user = await _userManager.FindByNameAsync(model.UserName);
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
-                var token = GenerateJwtToken(user);
-                System.Console.WriteLine($"Generated token : {token}");
+                var token = await GenerateJwtToken(user);
+                var roles = await _userManager.GetRolesAsync(user);
+            
                 
                 // uncomment to sent the jwt token as a json response instead of a cookie
                 // return Ok(new { Token = token });
@@ -45,10 +48,39 @@ namespace MuAuthApp.Controllers
                     Expires = DateTime.UtcNow.AddMinutes(60)
                 });
 
-                return Ok();
+                return Ok(new {
+                    userName = user.UserName,
+                    role = roles
+                });
             }
 
             return Unauthorized();
+        }
+
+        [HttpPost("assign-role")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AssignRole([FromBody] AssignRoleModel model)
+        {
+            var user = await _userManager.FindByNameAsync(model.UserName);
+            if (user == null)
+            {
+                return NotFound("User Not Found");
+            }
+
+            var roleExisits = await _roleManager.RoleExistsAsync(model.RoleName);
+            if (!roleExisits) 
+            {
+                return BadRequest($"Role '{model.RoleName}' does not exists.");
+            }
+
+            var result = await _userManager.AddToRoleAsync(user, model.RoleName);
+
+            if (result.Succeeded)
+            {
+                return Ok($"User `{model.UserName}` added to role '{model.RoleName}'");
+            }
+
+            return BadRequest(result.Errors);
         }
 
         [HttpPost("logout")]
@@ -56,6 +88,13 @@ namespace MuAuthApp.Controllers
         {
             Response.Cookies.Delete("jwt");
             return Ok();
+        }
+
+        [HttpGet("check-admin")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult CheckAdmin()
+        {
+            return Ok(new { IsAdmin = true, Username = User.Identity.Name });
         }
 
         [HttpGet("debug-auth")]
@@ -129,7 +168,7 @@ namespace MuAuthApp.Controllers
             return BadRequest("Invalid data.");
         }
 
-        private string GenerateJwtToken(IdentityUser user)
+        private async Task<string> GenerateJwtToken(IdentityUser user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             List<Claim> claims  =
@@ -140,11 +179,16 @@ namespace MuAuthApp.Controllers
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.Name, user.UserName)
             ];
+
+            // add roles to claims
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach (var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
             
             // we use the secret key from appsettins to sing the jwt
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Secret"]));
-            Console.WriteLine(jwtSettings["Secret"]);
-            Console.WriteLine(key.ToString());
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
