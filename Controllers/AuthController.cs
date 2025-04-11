@@ -112,6 +112,22 @@ namespace MuAuthApp.Controllers
             });
         }
 
+        [HttpGet("secure")]
+        [Authorize]
+        public async Task<IActionResult> Secure()
+        {
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            if (user != null)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                return Ok(new {
+                    userName = user.UserName,
+                    role = roles
+                });
+            }
+            return Ok();
+        }
+
         // [Authorize] makes it so only authenticated users can access this end points
         [HttpGet("profile")]
         [Authorize] 
